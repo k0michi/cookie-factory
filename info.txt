@@ -1,0 +1,9 @@
+{
+	"Name": "Cookie Factory",
+	"ID": "cookie factory",
+	"Author": "Komichi",
+	"Description": "Automate baking cookies",
+	"ModVersion": 1,
+	"GameVersion": 2.04,
+	"Disabled": 1
+}
