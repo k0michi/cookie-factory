@@ -55,7 +55,7 @@ Game.registerMod('cookie factory', {
     let maxCpsPerPrice = Number.MIN_VALUE;
 
     for (const object of candidateObjects) {
-      const cpsPerPrice = object.storedCps / object.price;
+      const cpsPerPrice = object.storedCps / object.getPrice();
 
       if (cpsPerPrice > maxCpsPerPrice) {
         objectToBuy = object;
@@ -63,15 +63,15 @@ Game.registerMod('cookie factory', {
       }
     }
 
-    if (objectToBuy != null && Game.cookies > objectToBuy.price) {
+    if (objectToBuy != null && Game.cookies > objectToBuy.getPrice()) {
       objectToBuy.buy();
-      this.log(`Bought building '${objectToBuy.name}', Price: ${objectToBuy.price}, CpsPerPrice: ${maxCpsPerPrice}`);
+      this.log(`Bought building '${objectToBuy.name}', Price: ${objectToBuy.getPrice()}, CpsPerPrice: ${maxCpsPerPrice}`);
     }
 
     for (const upgrade of Game.UpgradesInStore) {
-      if (Game.cookies > upgrade.basePrice) {
+      if (Game.cookies > upgrade.getPrice()) {
         upgrade.buy();
-        this.log(`Bought upgrade '${upgrade.name}', Price: ${upgrade.basePrice}`);
+        this.log(`Bought upgrade '${upgrade.name}', Price: ${upgrade.getPrice()}`);
       }
     }
 
