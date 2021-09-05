@@ -40,45 +40,80 @@ Game.registerMod('cookie factory', {
   },
 
   tick2() {
-    let candidateObjects = [];
+    try {
+      let estimated = [];
+      let notEstimated = [];
 
-    for (let i = 0; i < Game.ObjectsById.length; i++) {
-      const object = Game.ObjectsById[i];
-      candidateObjects.push(object);
+      for (const object of Game.ObjectsById) {
+        const cpsPerPrice = object.storedCps / object.getPrice();
+        estimated.push({ item: object, cpsPerPrice, kind: 'building' });
 
-      if (object.amount == 0) {
-        break;
+        if (Game.cookies < object.getPrice()) {
+          break;
+        }
       }
-    }
 
-    let objectToBuy;
-    let maxCpsPerPrice = Number.MIN_VALUE;
+      for (const upgrade of Game.UpgradesInStore) {
+        const cpsPerPrice = this.estimateCpsPerPrice(upgrade);
 
-    for (const object of candidateObjects) {
-      const cpsPerPrice = object.storedCps / object.getPrice();
+        if (cpsPerPrice != null) {
+          estimated.push({ item: upgrade, cpsPerPrice, kind: 'upgrade' });
+        } else {
+          notEstimated.push({ item: upgrade, kind: 'upgrade' });
+        }
 
-      if (cpsPerPrice > maxCpsPerPrice) {
-        objectToBuy = object;
-        maxCpsPerPrice = cpsPerPrice;
+        if (Game.unbuffedCps * 3600 < upgrade.getPrice()) {
+          break;
+        }
       }
-    }
+      
+      estimated.sort((a, b) => b.cpsPerPrice - a.cpsPerPrice);
+      notEstimated.sort((a, b) => a.item.getPrice() - b.item.getPrice());
+      let thing = estimated[0];
 
-    if (objectToBuy != null && Game.cookies > objectToBuy.getPrice()) {
-      objectToBuy.buy();
-      this.log(`Bought building '${objectToBuy.name}', Price: ${objectToBuy.getPrice()}, CpsPerPrice: ${maxCpsPerPrice}`);
-    }
+      if (thing != null && Game.cookies > thing.item.getPrice()) {
+        thing.item.buy();
+        this.log(`Bought ${thing.kind} '${thing.item.name}', Price: ${thing.item.getPrice()}, CpsPerPrice: ${thing.cpsPerPrice}`);
+      } else {
+        thing = notEstimated[0];
 
-    for (const upgrade of Game.UpgradesInStore) {
-      if (Game.cookies > upgrade.getPrice()) {
-        upgrade.buy();
-        this.log(`Bought upgrade '${upgrade.name}', Price: ${upgrade.getPrice()}`);
+        if (thing != null && Game.cookies > thing.item.getPrice() * 5) {
+          thing.item.buy();
+          this.log(`Bought ${thing.kind} '${thing.item.name}', Price: ${thing.item.getPrice()}`);
+        }
       }
+
+      for (const shimmer of Game.shimmers) {
+        shimmer.pop();
+      }
+    } catch (error) {
+      this.log(error);
+    }
+  },
+
+  estimateCpsPerPrice(upgrade) {
+    const cps = Game.unbuffedCps;
+
+    if (upgrade.pool == 'cookie') {
+      let mul;
+
+      if (typeof (upgrade.power) == 'function') {
+        mul = 1 + upgrade.power() * 0.01;
+      } else {
+        mul = 1 + upgrade.power * 0.01;
+      }
+
+      return (cps * mul - cps) / upgrade.getPrice();
+    } else if (typeof (upgrade.tier) == 'number' && upgrade.tier >= 1 && upgrade.buildingTie != null) {
+      const inc = upgrade.buildingTie.storedTotalCps;
+      return inc / upgrade.getPrice();
+    } else if (upgrade.kitten == 1) {
+      const milkMult = 1;
+      const mul = (1 + Game.milkProgress * catMultipliers[upgrade.name] * milkMult);
+      return (cps * mul - cps) / upgrade.getPrice();
     }
 
-    for (const shimmer of Game.shimmers) {
-      shimmer.pop();
-      this.log(`Popped golden cookie '${shimmer.type}'`);
-    }
+    return null;
   },
 
   log(text) {
@@ -87,3 +122,20 @@ Game.registerMod('cookie factory', {
     if (Game.onMenu == 'console') Game.UpdateMenu();
   }
 });
+
+const catMultipliers = {
+  'Kitten helpers': 0.1,
+  'Kitten workers': 0.125,
+  'Kitten engineers': 0.15,
+  'Kitten overseers': 0.175,
+  'Kitten managers': 0.2,
+  'Kitten accountants': 0.2,
+  'Kitten specialists': 0.2,
+  'Kitten experts': 0.2,
+  'Kitten consultants': 0.2,
+  'Kitten assistants to the regional manager': 0.175,
+  'Kitten marketeers': 0.15,
+  'Kitten analysts': 0.125,
+  'Kitten executives': 0.115,
+  'Kitten angels': 0.1
+}
