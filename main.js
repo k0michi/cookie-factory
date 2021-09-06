@@ -48,25 +48,27 @@ Game.registerMod('cookie factory', {
         const cpsPerPrice = object.storedCps / object.getPrice();
         estimated.push({ item: object, cpsPerPrice, kind: 'building' });
 
-        if (Game.cookies < object.getPrice()) {
+        if (Game.cookies < object.getPrice() && Game.unbuffedCps * 900 < object.getPrice()) {
           break;
         }
       }
 
       for (const upgrade of Game.UpgradesInStore) {
-        const cpsPerPrice = this.estimateCpsPerPrice(upgrade);
+        if (upgrade.name != 'One mind' && upgrade.pool != "toggle") {
+          const cpsPerPrice = this.estimateCpsPerPrice(upgrade);
 
-        if (cpsPerPrice != null) {
-          estimated.push({ item: upgrade, cpsPerPrice, kind: 'upgrade' });
-        } else {
-          notEstimated.push({ item: upgrade, kind: 'upgrade' });
+          if (cpsPerPrice != null) {
+            estimated.push({ item: upgrade, cpsPerPrice, kind: 'upgrade' });
+          } else {
+            notEstimated.push({ item: upgrade, kind: 'upgrade' });
+          }
         }
 
-        if (Game.unbuffedCps * 3600 < upgrade.getPrice()) {
+        if (Game.cookies < upgrade.getPrice() && Game.unbuffedCps * 900 < upgrade.getPrice()) {
           break;
         }
       }
-      
+
       estimated.sort((a, b) => b.cpsPerPrice - a.cpsPerPrice);
       notEstimated.sort((a, b) => a.item.getPrice() - b.item.getPrice());
       let thing = estimated[0];
@@ -104,7 +106,7 @@ Game.registerMod('cookie factory', {
       }
 
       return (cps * mul - cps) / upgrade.getPrice();
-    } else if (typeof (upgrade.tier) == 'number' && upgrade.tier >= 1 && upgrade.buildingTie != null) {
+    } else if (typeof (upgrade.tier) == 'number' && upgrade.tier >= 1 && upgrade.buildingTie != 0) {
       const inc = upgrade.buildingTie.storedTotalCps;
       return inc / upgrade.getPrice();
     } else if (upgrade.kitten == 1) {
