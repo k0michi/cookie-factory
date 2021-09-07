@@ -45,27 +45,27 @@ Game.registerMod('cookie factory', {
       let notEstimated = [];
 
       for (const object of Game.ObjectsById) {
-        const cpsPerPrice = object.storedCps / object.getPrice();
+        const cpsPerPrice = object.cps(object) / object.getPrice();
         estimated.push({ item: object, cpsPerPrice, kind: 'building' });
 
-        if (Game.cookies < object.getPrice() && Game.unbuffedCps * 900 < object.getPrice()) {
+        if (object.amount == 0) {
           break;
         }
       }
 
       for (const upgrade of Game.UpgradesInStore) {
         if (upgrade.name != 'One mind' && upgrade.pool != "toggle") {
-          const cpsPerPrice = this.estimateCpsPerPrice(upgrade);
+          if (Game.cookies > upgrade.getPrice() || Game.unbuffedCps * 900 > upgrade.getPrice()) {
+            const cpsPerPrice = this.estimateCpsPerPrice(upgrade);
 
-          if (cpsPerPrice != null) {
-            estimated.push({ item: upgrade, cpsPerPrice, kind: 'upgrade' });
+            if (cpsPerPrice != null) {
+              estimated.push({ item: upgrade, cpsPerPrice, kind: 'upgrade' });
+            } else {
+              notEstimated.push({ item: upgrade, kind: 'upgrade' });
+            }
           } else {
-            notEstimated.push({ item: upgrade, kind: 'upgrade' });
+            break;
           }
-        }
-
-        if (Game.cookies < upgrade.getPrice() && Game.unbuffedCps * 900 < upgrade.getPrice()) {
-          break;
         }
       }
 
@@ -87,6 +87,12 @@ Game.registerMod('cookie factory', {
 
       for (const shimmer of Game.shimmers) {
         shimmer.pop();
+      }
+
+      const santaPrice = Math.pow(Game.santaLevel + 1, Game.santaLevel + 1);
+
+      if (Game.specialTabs.includes('santa') && Game.cookies > santaPrice * 5 && Game.santaLevel < 14) {
+        Game.UpgradeSanta();
       }
     } catch (error) {
       this.log(error);
