@@ -94,6 +94,16 @@ Game.registerMod('cookie factory', {
       if (Game.specialTabs.includes('santa') && Game.cookies > santaPrice * 5 && Game.santaLevel < 14) {
         Game.UpgradeSanta();
       }
+
+      let wrinklerCount = 0;
+
+      for (const wrinkler of Game.wrinklers) {
+        if (wrinkler.phase > 0) wrinklerCount++;
+      }
+
+      if (wrinklerCount == Game.getWrinklersMax()) {
+				Game.CollectWrinklers();
+      }
     } catch (error) {
       this.log(error);
     }
