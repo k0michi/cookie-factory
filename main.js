@@ -1,10 +1,14 @@
 Game.registerMod('cookie factory', {
   init() {
     this.interval = setInterval(this.tick.bind(this), 20);
-    this.interval2 = setInterval(this.tick2.bind(this), 100);
+    this.interval2 = setInterval(this.tick2.bind(this), 20);
+    // this.interval3 = setInterval(this.calculateCpsps.bind(this), 5000);
     this.logs = [];
     this.putButton();
     this.inject();
+    this.settings = {
+      autoUpgrade: true
+    };
   },
 
   putButton() {
@@ -35,53 +39,65 @@ Game.registerMod('cookie factory', {
     };
   },
 
+  calculateCpsps() {
+    const deltaCps = Game.unbuffedCps - this.lastCps;
+    const deltaTime = Game.time - this.lastTime;
+    const cpsps = deltaCps / deltaTime;
+
+    this.log(`CpSpS: ${cpsps}`);
+    this.lastCps = Game.unbuffedCps;
+    this.lastTime = Game.time;
+  },
+
   tick() {
     Game.ClickCookie({ preventDefault: () => { }, detail: 1 });
   },
 
   tick2() {
     try {
-      let estimated = [];
-      let notEstimated = [];
+      if (this.settings.autoUpgrade) {
+        let estimated = [];
+        let notEstimated = [];
 
-      for (const object of Game.ObjectsById) {
-        const cpsPerPrice = object.cps(object) / object.getPrice();
-        estimated.push({ item: object, cpsPerPrice, kind: 'building' });
+        for (const object of Game.ObjectsById) {
+          const cpsPerPrice = object.cps(object) / object.getPrice();
+          estimated.push({ item: object, cpsPerPrice, kind: 'building' });
 
-        if (object.amount == 0) {
-          break;
-        }
-      }
-
-      for (const upgrade of Game.UpgradesInStore) {
-        if (upgrade.name != 'One mind' && upgrade.pool != "toggle") {
-          if (Game.cookies > upgrade.getPrice() || Game.unbuffedCps * 900 > upgrade.getPrice()) {
-            const cpsPerPrice = this.estimateCpsPerPrice(upgrade);
-
-            if (cpsPerPrice != null) {
-              estimated.push({ item: upgrade, cpsPerPrice, kind: 'upgrade' });
-            } else {
-              notEstimated.push({ item: upgrade, kind: 'upgrade' });
-            }
-          } else {
+          if (object.amount == 0) {
             break;
           }
         }
-      }
 
-      estimated.sort((a, b) => b.cpsPerPrice - a.cpsPerPrice);
-      notEstimated.sort((a, b) => a.item.getPrice() - b.item.getPrice());
-      let thing = estimated[0];
+        for (const upgrade of Game.UpgradesInStore) {
+          if (upgrade.name != 'One mind' && upgrade.pool != "toggle") {
+            if (Game.cookies > upgrade.getPrice() || Game.unbuffedCps * 900 > upgrade.getPrice()) {
+              const cpsPerPrice = this.estimateCpsPerPrice(upgrade);
 
-      if (thing != null && Game.cookies > thing.item.getPrice()) {
-        thing.item.buy();
-        this.log(`Bought ${thing.kind} '${thing.item.name}', Price: ${thing.item.getPrice()}, CpsPerPrice: ${thing.cpsPerPrice}`);
-      } else {
-        thing = notEstimated[0];
+              if (cpsPerPrice != null) {
+                estimated.push({ item: upgrade, cpsPerPrice, kind: 'upgrade' });
+              } else {
+                notEstimated.push({ item: upgrade, kind: 'upgrade' });
+              }
+            } else {
+              break;
+            }
+          }
+        }
 
-        if (thing != null && Game.cookies > thing.item.getPrice() * 5) {
+        estimated.sort((a, b) => b.cpsPerPrice - a.cpsPerPrice);
+        notEstimated.sort((a, b) => a.item.getPrice() - b.item.getPrice());
+        let thing = estimated[0];
+
+        if (thing != null && Game.cookies > thing.item.getPrice()) {
           thing.item.buy();
-          this.log(`Bought ${thing.kind} '${thing.item.name}', Price: ${thing.item.getPrice()}`);
+          this.log(`Bought ${thing.kind} '${thing.item.name}', Price: ${thing.item.getPrice()}, CpsPerPrice: ${thing.cpsPerPrice}`);
+        } else {
+          thing = notEstimated[0];
+
+          if (thing != null && Game.cookies > thing.item.getPrice() * 5) {
+            thing.item.buy();
+            this.log(`Bought ${thing.kind} '${thing.item.name}', Price: ${thing.item.getPrice()}`);
+          }
         }
       }
 
@@ -95,6 +111,10 @@ Game.registerMod('cookie factory', {
         Game.UpgradeSanta();
       }
 
+      if (Game.specialTabs.includes('dragon')) {
+        Game.UpgradeDragon();
+      }
+
       let wrinklerCount = 0;
 
       for (const wrinkler of Game.wrinklers) {
@@ -102,7 +122,11 @@ Game.registerMod('cookie factory', {
       }
 
       if (wrinklerCount == Game.getWrinklersMax()) {
-				Game.CollectWrinklers();
+        Game.CollectWrinklers();
+      }
+
+      if (Game.TickerEffect != 0 && Game.TickerEffect.type=='fortune') {
+        Game.tickerL.click();
       }
     } catch (error) {
       this.log(error);
