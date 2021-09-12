@@ -32,7 +32,10 @@ Game.registerMod('cookie factory', {
           str += `<div class="listing">${log}</div>`;
         }
 
-        l('menu').innerHTML = str;
+        const menu = l('menu');
+        menu.innerHTML = str;
+        const centerArea = l('centerArea');
+        centerArea.scrollTop = centerArea.scrollHeight;
       } else {
         UpdateMenu();
       }
@@ -125,8 +128,39 @@ Game.registerMod('cookie factory', {
         Game.CollectWrinklers();
       }
 
-      if (Game.TickerEffect != 0 && Game.TickerEffect.type=='fortune') {
+      if (Game.TickerEffect != 0 && Game.TickerEffect.type == 'fortune') {
         Game.tickerL.click();
+      }
+
+      if (Game.isMinigameReady(Game.Objects['Farm'])) {
+        const garden = Game.Objects['Farm'].minigame;
+
+        for (let y = 0; y < 6; y++) {
+          for (let x = 0; x < 6; x++) {
+            if (garden.isTileUnlocked(x, y)) {
+              const tile = garden.getTile(x, y);
+              const plant = garden.plantsById[0];
+
+              if (tile[0] == 0 && garden.canPlant(plant)) {
+                plant.l.click();
+                garden.clickTile(x, y);
+              }
+            }
+          }
+        }
+      }
+
+      if (Game.isMinigameReady(Game.Objects['Wizard tower'])) {
+        const grimoire = Game.Objects['Wizard tower'].minigame;
+
+        if (grimoire.magicM == grimoire.magic) {
+          const spell = grimoire.spells['hand of fate'];
+          const cost = grimoire.getSpellCost(spell);
+
+          if (grimoire.magic > cost) {
+            grimoire.castSpell(spell);
+          }
+        }
       }
     } catch (error) {
       this.log(error);
@@ -179,5 +213,6 @@ const catMultipliers = {
   'Kitten marketeers': 0.15,
   'Kitten analysts': 0.125,
   'Kitten executives': 0.115,
-  'Kitten angels': 0.1
+  'Kitten angels': 0.1,
+  'Fortune #103': 0.05
 }
